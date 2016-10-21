@@ -6,7 +6,13 @@
  
  Controls:
  
- Left and Right Arrow Key to move spaceship
+ A and D to move spaceship
+ SPACE to fire
+ TAB to begin game
+ 
+ Notes:
+ - Had trouble firing lasers and moving enemies
+ - Collision not implemented
  
  */
 
@@ -203,7 +209,7 @@ bool checkPlayerColli(Entity* enemy_laser, Entity* player) {
 }
 
 // check collision between laser and enemy
-// doesn't work
+// don't know where to put
 bool checkEnemyColli(Entity* player_laser, Entity* enemy) {
     if (player_laser->y+player_laser->height/2 > enemy->y+enemy->height/2) {
         // remove laser
