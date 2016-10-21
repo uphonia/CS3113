@@ -14,6 +14,83 @@
 #endif
 
 SDL_Window* displayWindow;
+ShaderProgram* program;
+
+class Entity {
+public:
+    Entity(ShaderProgram* program, Matrix matrix, GLuint textureID, float x, float y) : program(program), matrix(matrix), textureID(textureID), x(x), y(y) {}
+    
+    ShaderProgram* program;
+    GLuint textureID;
+    Matrix matrix;
+    
+    float x;
+    float y;
+    
+    void Draw() {
+        program->setModelMatrix(matrix);
+        
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        
+        float vertices[] = {
+            -0.5f, -0.5f,
+            0.5f, -0.5f,
+            0.5f, 0.5f,
+            -0.5f, -0.5f,
+            0.5f, 0.5f,
+            -0.5f, 0.5f
+        };
+        
+        glVertexAttribPointer(program->positionAttribute, 2, GL_FLOAT, false, 0, vertices);
+        glEnableVertexAttribArray(program->positionAttribute);
+        
+        float texCoords[] = {0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+        glVertexAttribPointer(program->texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords);
+        glEnableVertexAttribArray(program->texCoordAttribute);
+        
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        
+        glDisableVertexAttribArray(program->positionAttribute);
+        glDisableVertexAttribArray(program->texCoordAttribute);
+
+    }
+};
+
+void DrawSpriteSheetSprite(ShaderProgram* progam, int index, int spriteCountX, int spriteCountY) {
+    float u = (float)(((int)index) % spriteCountX) / (float) spriteCountX;
+    float v = (float)(((int)index) / spriteCountX) / (float) spriteCountY;
+    float spriteWidth = 1.0/(float)spriteCountX;
+    float spriteHeight = 1.0/(float)spriteCountY;
+    
+    GLfloat texCoords[] = {
+        u, v+spriteHeight,
+        u+spriteWidth, v,
+        u, v,
+        u+spriteWidth, v,
+        u, v+spriteHeight,
+        u+spriteWidth, v+spriteHeight
+    };
+    
+    float vertices[] = {
+        -0.5f, -0.5f,
+        0.5f, 0.5f,
+        -0.5f, 0.5f,
+        0.5f, 0.5f,
+        -0.5f, -0.5f,
+        0.5f, -0.5f
+    };
+    
+    glVertexAttribPointer(program->positionAttribute, 2, GL_FLOAT, false, 0, vertices);
+    glEnableVertexAttribArray(program->positionAttribute);
+    
+    glVertexAttribPointer(program->texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords);
+    glEnableVertexAttribArray(program->texCoordAttribute);
+    
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    
+    glDisableVertexAttribArray(program->positionAttribute);
+    glDisableVertexAttribArray(program->texCoordAttribute);
+}
 
 GLuint LoadTexture(const char *image_path) {
     SDL_Surface *surface = IMG_Load(image_path);
@@ -37,125 +114,102 @@ GLuint LoadTexture(const char *image_path) {
     return textureID;
 }
 
-int main(int argc, char *argv[])
-{
+void Setup() {
     SDL_Init(SDL_INIT_VIDEO);
     displayWindow = SDL_CreateWindow("Hungry Cat", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 360, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(displayWindow);
     SDL_GL_MakeCurrent(displayWindow, context);
-#ifdef _WINDOWS
-    glewInit();
-#endif
+
     
+}
+
+// SDL event loops
+bool ProcessEvents(SDL_Event& event) {
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Update(Entity* cat, Entity* milk, Entity* fish) {
+    if (cat->x > 2.0f || cat->x < -2.0f)
+        cat->x *= -1.0;
+    
+}
+
+void Render(Entity* cat, Entity* milk, Entity* fish) {
+    cat->Draw();
+    milk->Draw();
+    fish->Draw();
+    
+}
+
+void CleanUp() {
+    SDL_Quit();
+}
+
+int main(int argc, char *argv[])
+{
+    Setup();
     SDL_Event event;
-    bool done = false;
     
-    // Setup
-    
-    // Set pixel size and offset of rendering area
     glViewport(0, 0, 640, 360);
-    
-    ShaderProgram program(RESOURCE_FOLDER"vertex_textured.glsl", RESOURCE_FOLDER"fragment_textured.glsl");
-    
-    // Load textures
-    GLuint catTexture = LoadTexture("cat.png");
-    GLuint milkTexture = LoadTexture("milk.png");
-    GLuint fishTexture = LoadTexture("fish.png");
-    
-    // Keeping time
-    float lastFrameTicks = 0.0f;
-    float catX = 0.0f;
     
     Matrix projectionMatrix;
     Matrix modelMatrix;
     Matrix viewMatrix;
     
-    // resets matrix to have no transformations
-    modelMatrix.identity();
+    Matrix catMatrix;
+    Matrix milkMatrix;
+    Matrix fishMatrix;
     
-    // Set orthographic projection in a matrix
-    // Stretches or compresses
     projectionMatrix.setOrthoProjection(-3.55, 3.55, -2.0f, 2.0f, -1.0f, 1.0f);
-    glUseProgram(program.programID);
     
-    while (!done) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
-                done = true;
-            }
-        }
+    program = new ShaderProgram(RESOURCE_FOLDER"vertex_textured.glsl", RESOURCE_FOLDER"fragment_textured.glsl");
+    
+    // Blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    //modelMatrix.identity();
+    
+    //glUseProgram(program->programID);
+    
+    float lastFrameTicks = 0.0f;
+    float catX = 0.0f;
+    
+    Entity* cat = new Entity(program, catMatrix, LoadTexture("cat.png"), 0.0, -1.5);
+    Entity* milk = new Entity(program, milkMatrix, LoadTexture("milk.png"), -1.0, 0.0);
+    Entity* fish = new Entity(program, fishMatrix, LoadTexture("fish.png"), 4.0, 0.0);
+    
+    cat->matrix.Translate(0.0f, -1.0f, 0.0f);
+    milk->matrix.Translate(1.5f, 0.0f, 0.0f);
+    fish->matrix.Translate(-1.5f, 0.0f, 0.0f);
+    
+    while (!ProcessEvents(event)) {
         
         float angle;
         float ticks = (float)SDL_GetTicks()/1000.0f;
         float elapsed = ticks - lastFrameTicks;
         lastFrameTicks = ticks;
-        catX += elapsed;
-        
-        // Blending
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        cat->x += elapsed;
         
         // Drawing
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // Makes background white
         glClear(GL_COLOR_BUFFER_BIT);
         
-        program.setModelMatrix(modelMatrix);
-        program.setProjectionMatrix(projectionMatrix);
-        program.setViewMatrix(viewMatrix);
+        program->setModelMatrix(modelMatrix);
+        program->setProjectionMatrix(projectionMatrix);
+        program->setViewMatrix(viewMatrix);
         
-        // catTexture
-        glBindTexture(GL_TEXTURE_2D, catTexture);
-        
-        float vertices1[] = {float(-2.5+catX), -2.0, float(-1.5+catX), -2.0, float(-1.5+catX), -1.0, float(-2.5+catX), -2.0, float(-1.5+catX), -1.0, float(-2.5+catX), -1.0};
-        
-        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices1);
-        glEnableVertexAttribArray(program.positionAttribute);
-        
-        float texCoords1[] = {0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0};
-        glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords1);
-        glEnableVertexAttribArray(program.texCoordAttribute);
-        
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        
-        glDisableVertexAttribArray(program.positionAttribute);
-        glDisableVertexAttribArray(program.texCoordAttribute);
-        
-        // fishTexture
-        glBindTexture(GL_TEXTURE_2D, fishTexture);
-        
-        float vertices2[] = {-1.5, -0.5, -0.5, -0.5, -0.5, 0.5, -1.5, -0.5, -0.5, 0.5, -1.5, 0.5};
-        
-        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices2);
-        glEnableVertexAttribArray(program.positionAttribute);
-        
-        float texCoords2[] = {0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0};
-        glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords2);
-        glEnableVertexAttribArray(program.texCoordAttribute);
-        
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        
-        glDisableVertexAttribArray(program.positionAttribute);
-        glDisableVertexAttribArray(program.texCoordAttribute);
-        
-        // milkTexture
-        glBindTexture(GL_TEXTURE_2D, milkTexture);
-        
-        float vertices3[] = {0.5, -0.5, 1.5, -0.5, 1.5, 0.5, 0.5, -0.5, 1.5, 0.5, 0.5, 0.5};
-        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices3);
-        glEnableVertexAttribArray(program.positionAttribute);
-        
-        float texCoords3[] = {0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0};
-        glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords3);
-        glEnableVertexAttribArray(program.texCoordAttribute);
-        
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        
-        glDisableVertexAttribArray(program.positionAttribute);
-        glDisableVertexAttribArray(program.texCoordAttribute);
+        Render(cat, milk, fish);
+        //Update(cat, milk, fish);
         
         SDL_GL_SwapWindow(displayWindow);
     }
     
-    SDL_Quit();
+    CleanUp();
     return 0;
 }
