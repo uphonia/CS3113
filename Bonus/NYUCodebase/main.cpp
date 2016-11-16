@@ -101,9 +101,9 @@ int main(int argc, char *argv[])
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
-    Mix_Chunk *bounce;
-    bounce = Mix_LoadWAV("bounce.wav");
+    Mix_Chunk *bounce = Mix_LoadWAV("bounce.wav");
     Mix_Chunk *score = Mix_LoadWAV("score.wav");
+    Mix_Music *music = Mix_LoadMUS("music.mp3");
     
     // New objects
     Entity* left_paddle = new Entity(-3.275, 0.0, .15, .6);
@@ -113,6 +113,8 @@ int main(int argc, char *argv[])
     const Uint8 *keys = SDL_GetKeyboardState(NULL);
     
     while (!done) {
+        // play music
+        Mix_PlayMusic(music, -1);
         
         float ticks = (float)SDL_GetTicks()/1000.0f;
         float elapsed = ticks - lastFrameTicks;
@@ -280,6 +282,7 @@ int main(int argc, char *argv[])
     // clean up sound
     Mix_FreeChunk(bounce);
     Mix_FreeChunk(score);
+    Mix_FreeMusic(music);
     
     SDL_Quit();
     return 0;
