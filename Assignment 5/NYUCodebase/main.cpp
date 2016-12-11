@@ -32,6 +32,8 @@ Matrix triangleMatrix;
 Matrix square1Matrix;
 Matrix square2Matrix;
 
+ShaderProgram* program;
+
 #define PI 3.1415926
 
 class Vector3 {
@@ -45,7 +47,7 @@ public:
     Vector3(float x, float y, float z) : x(x), y(y), z(z) {}
     
     void normalize() {
-        float length = sqrt(x*x + y*y);
+        float length = sqrtf(x*x + y*y);
         x /= length;
         y /= length;
     }
@@ -224,9 +226,7 @@ void Update(float elapsed) {
 void collisionResponse(Entity* entity1, Entity* entity2) {
     int maxChecks = 10;
     while(checkSATCollision(entity1->ePoints, entity2->ePoints) && maxChecks > 0) {
-        std::cout << "test" << std::endl;
         Vector3 responseVector = Vector3(entity1->position.x - entity2->position.x, entity1->position.y - entity2->position.y, 0.0);
-        std::cout << responseVector.x << " " << responseVector.y << " " << responseVector.z << std::endl;
         responseVector.normalize();
         
         entity1->position.x -= responseVector.x * 0.002;
@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
     
     projectionMatrix.setOrthoProjection(-3.55, 3.55, -2.0f, 2.0f, -1.0f, 1.0f);
     
-    ShaderProgram program(RESOURCE_FOLDER"vertex.glsl", RESOURCE_FOLDER"fragment.glsl");
+    program = new ShaderProgram(RESOURCE_FOLDER"vertex.glsl", RESOURCE_FOLDER"fragment.glsl");
     
     // Keeping time
     float lastFrameTicks = 0.0f;
@@ -269,16 +269,16 @@ int main(int argc, char *argv[])
     triangle->ePoints.push_back(Vector3(-0.5, -0.5, 0.0));
     
     square1 = new Entity(square1Matrix, 6, Vector3(0.0, 0.0, 0.0), Vector3(2.0, 2.0, 0.0), 0.0f);
-    square1->ePoints.push_back(Vector3(-2.0, -0.5, 0.0));
-    square1->ePoints.push_back(Vector3(-3.2, -0.5, 0.0));
-    square1->ePoints.push_back(Vector3(-3.2, 0.5, 0.0));
-    square1->ePoints.push_back(Vector3(-2.0, 0.5, 0.0));
+    square1->ePoints.push_back(Vector3(-0.5, -0.5, 0.0));
+    square1->ePoints.push_back(Vector3(0.5, -0.5, 0.0));
+    square1->ePoints.push_back(Vector3(0.5, 0.5, 0.0));
+    square1->ePoints.push_back(Vector3(-0.5, 0.5, 0.0));
     
     square2 = new Entity(square2Matrix, 6, Vector3(0.0, 0.0, 0.0), Vector3(2.0, 2.0, 0.0), 0.0f);
-    square2->ePoints.push_back(Vector3(1.0, -0.5, 0.0));
-    square2->ePoints.push_back(Vector3(2.2, -0.5, 0.0));
-    square2->ePoints.push_back(Vector3(2.2, 0.5, 0.0));
-    square2->ePoints.push_back(Vector3(1.0, 0.5, 0.0));
+    square2->ePoints.push_back(Vector3(-0.5, -0.5, 0.0));
+    square2->ePoints.push_back(Vector3(0.5, -0.5, 0.0));
+    square2->ePoints.push_back(Vector3(0.5, 0.5, 0.0));
+    square2->ePoints.push_back(Vector3(-0.5, 0.5, 0.0));
     
     std::vector<Entity*> entities;
     entities.push_back(triangle);
@@ -294,17 +294,17 @@ int main(int argc, char *argv[])
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        program.setProjectionMatrix(projectionMatrix);
-        program.setViewMatrix(viewMatrix);
-        program.setModelMatrix(triangleMatrix);
+        program->setProjectionMatrix(projectionMatrix);
+        program->setViewMatrix(viewMatrix);
+        program->setModelMatrix(triangleMatrix);
         
-        glUseProgram(program.programID);
+        glUseProgram(program->programID);
         
         Update(elapsed);
         
-        collisionResponse(triangle, square1);
-        collisionResponse(square1, square2);
-        collisionResponse(triangle, square2);
+        //collisionResponse(triangle, square1);
+        //collisionResponse(square1, square2);
+        //collisionResponse(triangle, square2);
         
         // drawing of objects
         triangleMatrix.identity();
@@ -318,61 +318,61 @@ int main(int argc, char *argv[])
             -0.5f, -0.5f
         };
         
-        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, tri_vertices);
-        glEnableVertexAttribArray(program.positionAttribute);
+        glVertexAttribPointer(program->positionAttribute, 2, GL_FLOAT, false, 0, tri_vertices);
+        glEnableVertexAttribArray(program->positionAttribute);
         
         glDrawArrays(GL_TRIANGLES, 0, 3);
         
-        glDisableVertexAttribArray(program.positionAttribute);
-        glDisableVertexAttribArray(program.texCoordAttribute);
+        glDisableVertexAttribArray(program->positionAttribute);
+        glDisableVertexAttribArray(program->texCoordAttribute);
         
-        program.setModelMatrix(square1Matrix);
+        program->setModelMatrix(square1Matrix);
 
         square1Matrix.identity();
-        square1Matrix.Translate(square1->position.x, square1->position.y, 0.0);
+        square1Matrix.Translate(1.0, 0.0, 0.0);
         square1Matrix.Rotate(square1->rotation*(float)PI/180);
         square1Matrix.Scale(0.5, 0.5, 0.0);
         
         float sq1_vertices[] {
-            -2.0, -0.5f,
-            -3.2, -0.5f,
-            -3.2, 0.5f,
-            -2.0, -0.5f,
-            -3.2, 0.5f,
-            -2.0, 0.5f
+            -0.5, -0.5,
+            0.5, -0.5,
+            0.5, 0.5,
+            -0.5, -0.5,
+            0.5, 0.5,
+            -0.5, 0.5
         };
         
-        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, sq1_vertices);
-        glEnableVertexAttribArray(program.positionAttribute);
+        glVertexAttribPointer(program->positionAttribute, 2, GL_FLOAT, false, 0, sq1_vertices);
+        glEnableVertexAttribArray(program->positionAttribute);
         
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        glDisableVertexAttribArray(program.positionAttribute);
-        glDisableVertexAttribArray(program.texCoordAttribute);
+        glDisableVertexAttribArray(program->positionAttribute);
+        glDisableVertexAttribArray(program->texCoordAttribute);
         
-        program.setModelMatrix(square1Matrix);
+        program->setModelMatrix(square2Matrix);
         
         square2Matrix.identity();
-        square2Matrix.Translate(square2->position.x, square2->position.y, 0.0);
+        square2Matrix.Translate(-1.0, 1.0, 0.0);
         square2Matrix.Rotate(square2->rotation*(float)PI/180);
-        square2Matrix.Scale(2.0, 2.0, 0.0);
+        square2Matrix.Scale(1.0, 1.0, 0.0);
         
         float sq2_vertices[] {
-            1.0, -0.5f,
-            2.2, -0.5f,
-            2.2, 0.5f,
-            1.0, -0.5f,
-            2.2, 0.5f,
-            1.0, 0.5f
+            -0.5, -0.5,
+            0.5, -0.5,
+            0.5, 0.5,
+            -0.5, -0.5,
+            0.5, 0.5,
+            -0.5, 0.5
         };
         
-        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, sq2_vertices);
-        glEnableVertexAttribArray(program.positionAttribute);
+        glVertexAttribPointer(program->positionAttribute, 2, GL_FLOAT, false, 0, sq2_vertices);
+        glEnableVertexAttribArray(program->positionAttribute);
         
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        glDisableVertexAttribArray(program.positionAttribute);
-        glDisableVertexAttribArray(program.texCoordAttribute);
+        glDisableVertexAttribArray(program->positionAttribute);
+        glDisableVertexAttribArray(program->texCoordAttribute);
         
         SDL_GL_SwapWindow(displayWindow);
     }
