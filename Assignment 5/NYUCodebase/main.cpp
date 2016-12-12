@@ -61,21 +61,34 @@ class Entity {
 public:
     Entity() {
         position = Vector3();
-        velocity = Vector3();
+        scale = Vector3();
     }
     
-    Entity(Matrix matrix, int numVertices, Vector3 position, Vector3 velocity, float rotation) : matrix(matrix), numVertices(numVertices), position(position), velocity(velocity), rotation(rotation) {}
+    Entity(Matrix matrix, int numVertices, Vector3 position, Vector3 scale, float rotation) : matrix(matrix), numVertices(numVertices), position(position), scale(scale), rotation(rotation) {}
     
     Matrix matrix;
     float rotation;
     
     Vector3 position;
-    Vector3 velocity;
+    Vector3 scale;
     Vector3 direction;
     
     std::vector<Vector3> ePoints;
     
     int numVertices;
+    
+    void modifyPoints(std::vector<Vector3> points) {
+        for (int i = 0; i < points.size(); i++) {
+            float xPos = points[i].x*cos(rotation) - points[i].y*sin(rotation);
+            float yPos = points[i].x*sin(rotation) + points[i].y*cos(rotation);
+            xPos *= scale.x;
+            yPos *= scale.y;
+            xPos += position.x;
+            yPos += position.y;
+            points[i].x = xPos;
+            points[i].y = yPos;
+        }
+    }
 };
 
 Entity* triangle;
@@ -263,23 +276,30 @@ int main(int argc, char *argv[])
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     // New objects
-    triangle = new Entity(triangleMatrix, 3, Vector3(0.0, 0.0, 0.0), Vector3(2.0, 2.0, 0.0), 0.0f);
+    triangle = new Entity(triangleMatrix, 3, Vector3(0.0, 0.0, 0.0), Vector3(0.5, 0.5, 0.0), 0.0f);
+    
+    // push back vertices of triangle
     triangle->ePoints.push_back(Vector3(0.5, -0.5, 0.0));
     triangle->ePoints.push_back(Vector3(0.0, 0.5, 0.0));
     triangle->ePoints.push_back(Vector3(-0.5, -0.5, 0.0));
     
-    square1 = new Entity(square1Matrix, 6, Vector3(0.0, 0.0, 0.0), Vector3(2.0, 2.0, 0.0), 0.0f);
+    square1 = new Entity(square1Matrix, 6, Vector3(0.0, 0.0, 0.0), Vector3(1.5, 1.5, 0.0), 0.0f);
+    
+    // push back vertices of square1
     square1->ePoints.push_back(Vector3(-0.5, -0.5, 0.0));
     square1->ePoints.push_back(Vector3(0.5, -0.5, 0.0));
     square1->ePoints.push_back(Vector3(0.5, 0.5, 0.0));
     square1->ePoints.push_back(Vector3(-0.5, 0.5, 0.0));
     
-    square2 = new Entity(square2Matrix, 6, Vector3(0.0, 0.0, 0.0), Vector3(2.0, 2.0, 0.0), 0.0f);
+    square2 = new Entity(square2Matrix, 6, Vector3(0.0, 0.0, 0.0), Vector3(1.0, 1.0, 0.0), 0.0f);
+    
+    // push back vertices of square2
     square2->ePoints.push_back(Vector3(-0.5, -0.5, 0.0));
     square2->ePoints.push_back(Vector3(0.5, -0.5, 0.0));
     square2->ePoints.push_back(Vector3(0.5, 0.5, 0.0));
     square2->ePoints.push_back(Vector3(-0.5, 0.5, 0.0));
     
+    // make vector of entities
     std::vector<Entity*> entities;
     entities.push_back(triangle);
     entities.push_back(square1);
@@ -301,16 +321,19 @@ int main(int argc, char *argv[])
         glUseProgram(program->programID);
         
         Update(elapsed);
+        for (int i = 0; i < entities.size(); i++) {
+            entities[i]->modifyPoints(entities[i]->ePoints);
+        }
         
+        // triangle does not appear when collisionResponse is called
         //collisionResponse(triangle, square1);
-        //collisionResponse(square1, square2);
         //collisionResponse(triangle, square2);
         
         // drawing of objects
         triangleMatrix.identity();
         triangleMatrix.Translate(triangle->position.x, triangle->position.y, 0.0);
         triangleMatrix.Rotate(triangle->rotation*(float)PI/180);
-        triangleMatrix.Scale(0.5, 0.5, 0.0);
+        triangleMatrix.Scale(triangle->scale.x, triangle->scale.y, triangle->scale.z);
         
         float tri_vertices[] {
             0.5f, -0.5f,
@@ -329,9 +352,9 @@ int main(int argc, char *argv[])
         program->setModelMatrix(square1Matrix);
 
         square1Matrix.identity();
-        square1Matrix.Translate(1.0, 0.0, 0.0);
+        square1Matrix.Translate(2.0, 0.0, 0.0);
         square1Matrix.Rotate(square1->rotation*(float)PI/180);
-        square1Matrix.Scale(0.5, 0.5, 0.0);
+        square1Matrix.Scale(square1->scale.x, square1->scale.y, square1->scale.z);
         
         float sq1_vertices[] {
             -0.5, -0.5,
@@ -353,9 +376,9 @@ int main(int argc, char *argv[])
         program->setModelMatrix(square2Matrix);
         
         square2Matrix.identity();
-        square2Matrix.Translate(-1.0, 1.0, 0.0);
+        square2Matrix.Translate(-2.0, 1.0, 0.0);
         square2Matrix.Rotate(square2->rotation*(float)PI/180);
-        square2Matrix.Scale(1.0, 1.0, 0.0);
+        square2Matrix.Scale(square2->scale.x, square2->scale.y, square2->scale.z);
         
         float sq2_vertices[] {
             -0.5, -0.5,
