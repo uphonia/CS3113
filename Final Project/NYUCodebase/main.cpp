@@ -7,7 +7,7 @@
  A D to move left and right
  SPACE to jump
  ESC for quit screen
- 
+ G on Main Menu for GodMode
  */
 
 #include <SDL.h>
@@ -842,6 +842,11 @@ void MainMenu(GLuint font_texture) {
     DrawText(program, font_texture, "ESC TO QUIT", .3f, -0.05f);
     
     modelMatrix.identity();
+    modelMatrix.Translate(-1.4f, -1.0f, 0.0f);
+    program->setModelMatrix(modelMatrix);
+    DrawText(program, font_texture, "G FOR GODMODE (no tile collisions)", .2f, -0.05f);
+    
+    modelMatrix.identity();
     
     if (keys[SDL_SCANCODE_SPACE]) {
         clearData();
@@ -851,8 +856,12 @@ void MainMenu(GLuint font_texture) {
     else if (keys[SDL_SCANCODE_ESCAPE])
         state = EXIT_SCREEN;
     
-    else if (keys[SDL_SCANCODE_G])
+    else if (keys[SDL_SCANCODE_G]) {
         godMode = true;
+        clearData();
+        state = LEVEL_1;
+        readFile("world_1.txt");
+    }
 }
 
 void GameOver(GLuint font_texture) {
@@ -927,7 +936,6 @@ void ExitPrompt(GLuint font_texture) {
     }
     else if (keys[SDL_SCANCODE_Y]) {
         godMode = false;
-        clearData();
         state = EXIT;
     }
 }
@@ -952,17 +960,27 @@ void Win(GLuint font_texture) {
     DrawText(program, font_texture, "ESC TO QUIT", .3f, -.06f);
     
     modelMatrix.identity();
+    modelMatrix.Translate(-1.0f, -1.0f, 0.0f);
+    program->setModelMatrix(modelMatrix);
+    DrawText(program, font_texture, "G TO RESTART IN GODMODE", .2f, -.05f);
+    
+    modelMatrix.identity();
     
     Mix_PlayChannel(-1, win, 0);
     Mix_VolumeChunk(win, 10);
     
     if (keys[SDL_SCANCODE_SPACE]) {
         state = LEVEL_1;
-        clearData();
         readFile(files[state-1]);
     }
     else if (keys[SDL_SCANCODE_ESCAPE])
         state = EXIT;
+    
+    else if (keys[SDL_SCANCODE_G]) {
+        godMode = true;
+        state = LEVEL_1;
+        readFile("world_1.txt");
+    }
 }
 
 // set to follow player
@@ -976,7 +994,6 @@ void centerPlayer() {
 // draws game level
 void RenderGameLevel() {
     player.Draw(program, playerMatrix, 80);
-    //centerPlayer();
     
     for (int i = 0; i < enemies.size(); i++)
         enemies[i].Draw(program, enemyMatrix, 445);
@@ -1202,7 +1219,7 @@ int main(int argc, char *argv[])
         SDL_GL_SwapWindow(displayWindow);
     }
     
-    clearData();
+    //clearData();
     CleanUp();
     return 0;
 }
